@@ -1,5 +1,0 @@
-regolith-debootstick-setup (1.0.0) trixie; urgency=medium
-
-  * Move files from regolith-iso-builder-sandbox experiment
-
- -- Ken Gilmer <kgilmer@gmail.com>  Sun, 21 Sep 2025 12:48:54 -0700
