@@ -43,15 +43,11 @@ jobs:
         with:
           name: debs
 
-      - name: List workspace (debug)
-        run: |
-          echo "PWD=$(pwd)"
-          ls -la
-
       - name: Move .deb files to single folder
         run: |
           mkdir -p deb-output
-          mv *.deb deb-output/ || true
+          # move all downloaded .deb files into deb-output
+          find . -maxdepth 1 -name "*.deb" -exec mv {} deb-output/ \;
           ls -la deb-output
 
       - name: Create APT repo (Debian Trixie amd64)
@@ -60,7 +56,9 @@ jobs:
           github_token: ${{ github.token }}
           repo_supported_arch: amd64
           repo_supported_version: trixie
-          file: "deb-output/*.deb"
+          # list all files explicitly
+          file: |
+            deb-output/$(ls deb-output | tr '\n' ' ')
           file_target_version: trixie
           page_branch: gh-pages
           repo_folder: repo
