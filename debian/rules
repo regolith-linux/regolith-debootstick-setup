@@ -1,5 +1,8 @@
 #!/usr/bin/make -f
 
 %:
-	dh $@
+	dh $@ --with systemd
 
+# We do not want to install a sysvinit script as this package uses systemd.
+# This override will fix the "init.d-script-not-included-in-package" error.
+override_dh_installinit:
