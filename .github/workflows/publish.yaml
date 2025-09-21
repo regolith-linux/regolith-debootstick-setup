@@ -1,0 +1,63 @@
+name: Build & Publish Debian Repo
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # Run on version tags
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Debian packages
+        uses: jtdor/build-deb-action@v1
+        with:
+          buildpackage-opts: "--build=binary --no-sign"
+
+      - name: Upload .deb artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: debs
+          path: debian/artifacts/*.deb
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+
+      - name: Create APT repo
+        uses: smeinecke/apt-repo-action@v2
+        with:
+          github_token: ${{ github.token }}
+          repo_supported_arch: amd64
+          repo_supported_version: bookworm
+          file: "*.deb"
+          file_target_version: "${{ github.ref_name }}"
+          page_branch: gh-pages
+          repo_folder: repo
+          # Signing (optional)
+          private_key: ${{ secrets.APT_SIGNING_KEY || '' }}
+          public_key: ${{ secrets.APT_SIGNING_PUBKEY || '' }}
+          key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE || '' }}
+
+      - name: Upload repo to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: repo
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/deploy-pages@v4
