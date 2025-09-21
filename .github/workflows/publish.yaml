@@ -1,9 +1,9 @@
-name: Build & Publish Debian Repo
+name: Build & Publish Debian APT Repo
 
 on:
   push:
     tags:
-      - 'v*.*.*'   # Run on version tags
+      - 'v*.*.*'
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
       - name: Build Debian packages
         uses: jtdor/build-deb-action@v1
@@ -32,26 +33,26 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download .deb artifacts
+        uses: actions/download-artifact@v4
         with:
           name: debs
 
-      - name: Create APT repo
-        uses: smeinecke/apt-repo-action@v2
+      - name: Create APT repo (Debian Trixie amd64)
+        uses: jrandiny/apt-repo-action@v2.0.1
         with:
           github_token: ${{ github.token }}
           repo_supported_arch: amd64
-          repo_supported_version: bookworm
+          repo_supported_version: trixie
           file: "*.deb"
           file_target_version: "${{ github.ref_name }}"
           page_branch: gh-pages
           repo_folder: repo
-          # Signing (optional)
           private_key: ${{ secrets.APT_SIGNING_KEY || '' }}
           public_key: ${{ secrets.APT_SIGNING_PUBKEY || '' }}
           key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE || '' }}
 
-      - name: Upload repo to Pages
+      - name: Upload repo folder for Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: repo
@@ -60,4 +61,5 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
