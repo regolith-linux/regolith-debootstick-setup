@@ -23,10 +23,8 @@ jobs:
         with:
           buildpackage-opts: "--build=binary --no-sign"
 
-      - name: Show built debs (debug)
-        run: |
-          echo "Listing debian/artifacts:"
-          ls -la debian/artifacts || true
+      - name: Show built debs
+        run: ls -la debian/artifacts
 
       - name: Upload .deb artifacts
         uses: actions/upload-artifact@v4
@@ -46,9 +44,18 @@ jobs:
       - name: Move .deb files to single folder
         run: |
           mkdir -p deb-output
-          # move all downloaded .deb files into deb-output
-          find . -maxdepth 1 -name "*.deb" -exec mv {} deb-output/ \;
+          mv *.deb deb-output/
+          echo "Debs in deb-output:"
           ls -la deb-output
+
+      - name: List .deb files for repo action
+        id: list_debs
+        run: |
+          # produce a newline-separated list of files
+          ls deb-output > deb-files.txt
+          cat deb-files.txt
+          # store for next step
+          echo "DEB_FILES=$(cat deb-files.txt | paste -sd '\n' -)" >> $GITHUB_ENV
 
       - name: Create APT repo (Debian Trixie amd64)
         uses: jrandiny/apt-repo-action@v2.0.1
@@ -56,9 +63,7 @@ jobs:
           github_token: ${{ github.token }}
           repo_supported_arch: amd64
           repo_supported_version: trixie
-          # list all files explicitly
-          file: |
-            deb-output/$(ls deb-output | tr '\n' ' ')
+          file: ${{ env.DEB_FILES }}      # pass actual file names
           file_target_version: trixie
           page_branch: gh-pages
           repo_folder: repo
@@ -67,10 +72,8 @@ jobs:
           key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE || '' }}
           debug: true
 
-      - name: Show generated repo folder (debug)
-        run: |
-          echo "Repo contents:"
-          ls -R repo || echo "repo folder not created"
+      - name: Show repo contents
+        run: ls -R repo
 
       - name: Upload repo folder for Pages
         uses: actions/upload-pages-artifact@v3
