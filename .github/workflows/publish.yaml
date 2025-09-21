@@ -23,6 +23,11 @@ jobs:
         with:
           buildpackage-opts: "--build=binary --no-sign"
 
+      - name: Show built debs (debug)
+        run: |
+          echo "Listing debian/artifacts:"
+          ls -la debian/artifacts || true
+
       - name: Upload .deb artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -38,19 +43,31 @@ jobs:
         with:
           name: debs
 
+      - name: List workspace (debug)
+        run: |
+          echo "PWD=$(pwd)"
+          ls -la
+
       - name: Create APT repo (Debian Trixie amd64)
         uses: jrandiny/apt-repo-action@v2.0.1
         with:
           github_token: ${{ github.token }}
           repo_supported_arch: amd64
-          repo_supported_version: trixie
-          file: "*.deb"
-          file_target_version: "${{ github.ref_name }}"
+          repo_supported_version: trixie            # <- supported suite(s)
+          file: "*.deb"                             # will match downloaded .deb files
+          file_target_version: trixie               # <- MUST be in repo_supported_version
           page_branch: gh-pages
           repo_folder: repo
+          # signing (optional)
           private_key: ${{ secrets.APT_SIGNING_KEY || '' }}
           public_key: ${{ secrets.APT_SIGNING_PUBKEY || '' }}
           key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE || '' }}
+          debug: true                               # (if the action supports debug)
+
+      - name: Show generated repo folder (debug)
+        run: |
+          echo "Repo contents:"
+          ls -R repo || echo "repo not created"
 
       - name: Upload repo folder for Pages
         uses: actions/upload-pages-artifact@v3
