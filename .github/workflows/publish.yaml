@@ -35,33 +35,49 @@ jobs:
           path: debian/artifacts/*.deb
 
   publish:
-  needs: build
-  runs-on: ubuntu-latest
-  steps:
-    - name: Download .deb artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: debs
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download .deb artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: debs
 
-    - name: Move .deb files to single folder
-      run: |
-        mkdir -p deb-output
-        mv *.deb deb-output/
+      - name: List workspace (debug)
+        run: |
+          echo "PWD=$(pwd)"
+          ls -la
 
-    - name: Create APT repo (Debian Trixie amd64)
-      uses: jrandiny/apt-repo-action@v2.0.1
-      with:
-        github_token: ${{ github.token }}
-        repo_supported_arch: amd64
-        repo_supported_version: trixie
-        file: "deb-output/*.deb"          # path to actual .deb files
-        file_target_version: trixie
-        page_branch: gh-pages
-        repo_folder: repo
-        private_key: ${{ secrets.APT_SIGNING_KEY || '' }}
-        public_key: ${{ secrets.APT_SIGNING_PUBKEY || '' }}
-        key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE || '' }}
+      - name: Move .deb files to single folder
+        run: |
+          mkdir -p deb-output
+          mv *.deb deb-output/ || true
+          ls -la deb-output
 
+      - name: Create APT repo (Debian Trixie amd64)
+        uses: jrandiny/apt-repo-action@v2.0.1
+        with:
+          github_token: ${{ github.token }}
+          repo_supported_arch: amd64
+          repo_supported_version: trixie
+          file: "deb-output/*.deb"
+          file_target_version: trixie
+          page_branch: gh-pages
+          repo_folder: repo
+          private_key: ${{ secrets.APT_SIGNING_KEY || '' }}
+          public_key: ${{ secrets.APT_SIGNING_PUBKEY || '' }}
+          key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE || '' }}
+          debug: true
+
+      - name: Show generated repo folder (debug)
+        run: |
+          echo "Repo contents:"
+          ls -R repo || echo "repo folder not created"
+
+      - name: Upload repo folder for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: repo
 
   deploy:
     needs: publish
