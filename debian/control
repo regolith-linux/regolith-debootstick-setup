@@ -9,9 +9,6 @@ Vcs-Git: https://github.com/regolith-linux/regolith-debootstick-setup.git
 
 Package: regolith-debootstick-setup
 Architecture: any
-Depends: ${misc:Depends}, systemd, whiptail
-Provides: regolith-compositor
-Conflicts: regolith-compositor
-Replaces: regolith-compositor
-Description: Regolith configuration for Xcompmgr
+Depends: ${misc:Depends}, systemd, whiptail, locales, passwd, kbd
+Description: System setup support for debootstick-based OS images
  A compositor init that uses xcompmgr.
