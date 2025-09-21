@@ -1,15 +1,9 @@
-name: Build & Publish Debian APT Repo
+name: Build and Publish Debian Package
 
 on:
   push:
     tags:
-      - 'v*.*.*'
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+      - "v*"
 
 jobs:
   build:
@@ -18,44 +12,47 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Build Debian packages
-        uses: jtdor/build-deb-action@v1
-        with:
-          buildpackage-opts: "--build=binary --no-sign"
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential devscripts debhelper dpkg-dev
 
-      - name: Show built debs
-        run: ls -la debian/artifacts
+      - name: Build Debian package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          ls -la ..
 
-      - name: Upload .deb artifacts
+      - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
           name: debs
-          path: debian/artifacts/*.deb
+          path: ../*.deb
 
   publish:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
       - name: Download .deb artifacts
         uses: actions/download-artifact@v4
         with:
           name: debs
 
-      - name: Move .deb files to single folder
+      - name: Collect .deb files
         run: |
           mkdir -p deb-output
-          mv *.deb deb-output/
+          mv *.deb deb-output/ || true
           echo "Debs in deb-output:"
           ls -la deb-output
 
       - name: List .deb files for repo action
         id: list_debs
         run: |
-          # produce a newline-separated list of files
-          ls deb-output > deb-files.txt
-          cat deb-files.txt
-          # store for next step
-          echo "DEB_FILES=$(cat deb-files.txt | paste -sd '\n' -)" >> $GITHUB_ENV
+          # produce space-separated list of debs with path
+          echo "DEB_FILES=$(ls deb-output/*.deb | paste -sd ' ' -)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
 
       - name: Create APT repo (Debian Trixie amd64)
         uses: jrandiny/apt-repo-action@v2.0.1
@@ -63,7 +60,7 @@ jobs:
           github_token: ${{ github.token }}
           repo_supported_arch: amd64
           repo_supported_version: trixie
-          file: ${{ env.DEB_FILES }}      # pass actual file names
+          file: ${{ env.DEB_FILES }}
           file_target_version: trixie
           page_branch: gh-pages
           repo_folder: repo
@@ -71,18 +68,3 @@ jobs:
           public_key: ${{ secrets.APT_SIGNING_PUBKEY || '' }}
           key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE || '' }}
           debug: true
-
-      - name: Show repo contents
-        run: ls -R repo
-
-      - name: Upload repo folder for Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: repo
-
-  deploy:
-    needs: publish
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
