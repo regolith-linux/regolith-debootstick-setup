@@ -1,0 +1,17 @@
+Source: regolith-debootstick-setup
+Section: x11
+Priority: optional
+Maintainer: Ken Gilmer <kgilmer@gmail.com>
+Build-Depends: debhelper (>= 10)
+Standards-Version: 4.1.2
+Homepage: https://github.com/regolith-linux/regolith-desktop
+Vcs-Git: https://github.com/regolith-linux/regolith-debootstick-setup.git
+
+Package: regolith-debootstick-setup
+Architecture: any
+Depends: ${misc:Depends}, systemd, whiptail
+Provides: regolith-compositor
+Conflicts: regolith-compositor
+Replaces: regolith-compositor
+Description: Regolith configuration for Xcompmgr
+ A compositor init that uses xcompmgr.
