@@ -20,13 +20,16 @@ jobs:
       - name: Build Debian package
         run: |
           dpkg-buildpackage -us -uc -b
-          ls -la ..
+          mkdir -p deb-artifacts
+          mv ../*.deb deb-artifacts/ || true
+          echo "Built DEBs:"
+          ls -la deb-artifacts
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
           name: debs
-          path: ../*.deb
+          path: deb-artifacts/*.deb
 
   publish:
     needs: build
@@ -50,8 +53,8 @@ jobs:
       - name: List .deb files for repo action
         id: list_debs
         run: |
-          # produce space-separated list of debs with path
           echo "DEB_FILES=$(ls deb-output/*.deb | paste -sd ' ' -)" >> $GITHUB_ENV
+          echo "Using files:"
           cat $GITHUB_ENV
 
       - name: Create APT repo (Debian Trixie amd64)
